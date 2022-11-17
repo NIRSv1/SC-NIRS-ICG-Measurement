@@ -1,0 +1,61 @@
+#include "MUX74HC4067.h"
+#include <Wire.h>
+#include <Adafruit_ADS1X15.h>
+//#define ADS1115_REG_CONFIG_DR_860SPS (0xC0)
+//To boost small signals, the gain can be adjusted on the ADS1x15 chips in the following steps:
+//GAIN_TWOTHIRDS (for an input range of +/- 6.144V)
+//GAIN_ONE (for an input range of +/-4.096V)
+//GAIN_TWO (for an input range of +/-2.048V)
+//GAIN_FOUR (for an input range of +/-1.024V)
+//GAIN_EIGHT (for an input range of +/-0.512V)
+//GAIN_SIXTEEN (for an input range of +/-0.256V)
+
+// Creates a MUX74HC4067 instance
+// 1st argument is the Arduino PIN to which the EN pin connects
+// 2nd-5th arguments are the Arduino PINs to which the S0-S3 pins connect
+MUX74HC4067 mux1(1,9,8,7,6);
+MUX74HC4067 mux2(1,5,4,3,2);
+Adafruit_ADS1115 ads1115;
+void setup()
+{
+  Serial.begin(115200);
+  // Configures how the SIG pin will be interfaced
+  // e.g. The SIG pin connects to PIN 3 on the Arduino,
+  //      and PIN 3 is a Digital Output
+  mux1.signalPin(1, OUTPUT, DIGITAL);
+  mux2.signalPin(1, OUTPUT, DIGITAL);
+  ads1115.begin();
+  ads1115.setDataRate(RATE_ADS1115_860SPS);
+  ads1115.setGain(GAIN_SIXTEEN);
+  pinMode(11, OUTPUT);  
+  for (int i = 1 ; i<17; i++){
+    for (int j = 1 ; j<9; j++){
+      Serial.print("LED_");Serial.print(i);Serial.print("_PD_");Serial.print(j);Serial.print("\t");
+    }
+  }
+  Serial.println("");
+}
+
+// Writes to the 16 channels a HIGH value, one after the other
+void loop()
+
+{
+  analogWrite(11,265);  //Set the PWM at 50 % on digital pin 3
+
+  for (byte i = 0; i < 16; ++i){
+    for(byte j =0; j < 8; ++j){
+    // Connects to channel i and writes HIGH
+      int16_t PD;
+      //int16_t PD_1;
+  
+      mux1.write(i, HIGH);
+      mux2.write(j,HIGH);
+      delayMicroseconds(100);
+      PD=ads1115.readADC_SingleEnded(0);
+      //PD_1=ads1115.computeVolts(PD);
+      Serial.print(PD);Serial.print("\t");
+      //delay(10);
+    }
+  }
+  Serial.println("");
+}
